@@ -16,7 +16,6 @@ include $(INCLUDE_DIR)/package.mk
 
 define Package/$(PKG_NAME)
 	TITLE:=$(PKG_NAME)
-	DEPENDS:=+lighttpd-mod-openssl
 endef
 
 define Build/Compile
