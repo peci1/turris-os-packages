@@ -9,11 +9,11 @@ include $(TOPDIR)/rules.mk
 
 PKG_NAME:=pakon
 PKG_VERSION:=1.2
-PKG_RELEASE:=8
+PKG_RELEASE:=10
 PKG_SOURCE_PROTO:=git
 PKG_SOURCE_URL:=https://gitlab.labs.nic.cz/turris/pakon-light.git
 PKG_SOURCE:=$(PKG_NAME).tar.gz
-PKG_SOURCE_VERSION:=826001ad83cebe6ef38685304077f7401aca2071
+PKG_SOURCE_VERSION:=22477b9bfbd844e3ebacfff5082f53dee2aa0b1e
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_SOURCE_VERSION).tar.gz
 PKG_SOURCE_SUBDIR:=$(PKG_NAME)
 PKG_BUILD_DIR:=$(BUILD_DIR)/$(PKG_NAME)
@@ -30,7 +30,7 @@ define Package/pakon
 	CATEGORY:=Network
 	SUBMENU:=Collect traffic events from suricata IDS
 	TITLE:=PArental KONtrol - light
-	DEPENDS:=+suricata-pakon +xz +python3-light +python3-logging +python3-cachetools +python3-sqlite3 +sqlite3-cli +pakon-lists +ouidb +suricata-conntrack-flows
+	DEPENDS:=+suricata-pakon +xz +python3-light +python3-logging +python3-ctypes +python3-cachetools +python3-sqlite3 +sqlite3-cli +pakon-lists +ouidb +suricata-conntrack-flows
 endef
 
 define Package/$(PKG_NAME)/description

@@ -8,7 +8,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=updater-ng
-PKG_VERSION:=60.3
+PKG_VERSION:=60.4.3
 PKG_RELEASE:=1
 PKG_SOURCE_PROTO:=git
 PKG_SOURCE_URL:=https://gitlab.labs.nic.cz/turris/updater.git
@@ -19,7 +19,7 @@ PKG_MAINTAINER:=CZ.NIC <packaging@turris.cz>
 PKG_BUILD_DIR:=$(BUILD_DIR)/$(PKG_NAME)
 HOST_BUILD_DIR:=$(BUILD_DIR_HOST)/$(PKG_NAME)
 HOST_BUILD_DEPENDS:=curl/host libevent2/host lua/host
-PKG_BUILD_DEPENDS+=busybox-static
+PKG_BUILD_DEPENDS:=busybox
 
 include $(INCLUDE_DIR)/package.mk
 include $(INCLUDE_DIR)/host-build.mk
@@ -42,7 +42,7 @@ define Package/$(PKG_NAME)/install
 	$(INSTALL_BIN) .//files/updater-wipe.sh $(1)/usr/bin/
 
 	$(INSTALL_DIR) $(1)/etc/updater
-	$(INSTALL_CONF) $(PKG_BUILD_DIR)/src/pkgupdate/configs/entry.lua $(1)/etc/updater
+	$(INSTALL_CONF) $(PKG_BUILD_DIR)/src/pkgupdate/configs/conf.lua $(1)/etc/updater
 	$(INSTALL_DIR) $(1)/etc/updater/conf.d
 	$(INSTALL_CONF) $(PKG_BUILD_DIR)/src/pkgupdate/configs/base.lua $(1)/etc/updater/conf.d/base.lua
 	$(INSTALL_CONF) $(PKG_BUILD_DIR)/src/pkgupdate/configs/example.lua $(1)/etc/updater/conf.d/example.lua
@@ -51,7 +51,7 @@ define Package/$(PKG_NAME)/install
 	$(INSTALL_DIR) $(1)/etc/updater/hook_postupdate
 	$(INSTALL_DIR) $(1)/etc/updater/hook_reboot_required
 	touch $(1)/etc/updater/hook_preupdate/.keep
-	touch $(1)/etc/updater/hook_postupdate/.keep
+	$(INSTALL_BIN) $(PKG_BUILD_DIR)/src/pkgupdate/hook_postupdate/update_alternatives.sh $(1)/etc/updater/hook_postupdate/update_alternatives.sh
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/src/pkgupdate/hook_reboot_required/50-create-notification.sh $(1)/etc/updater/hook_reboot_required/50-create-notification.sh
 
 	$(INSTALL_DIR) $(1)/etc/config
@@ -124,7 +124,7 @@ endef
 
 define Package/$(PKG_NAME)-supervisor
 	TITLE:=Next generation updater supervisor
-	DEPENDS:=+updater-ng-py2-supervisor +updater-ng +vixie-cron
+	DEPENDS:=+updater-ng-py3-supervisor +updater-ng +vixie-cron
 endef
 
 define Package/$(PKG_NAME)-supervisor/install
@@ -147,8 +147,8 @@ endef
 
 
 define Package/$(PKG_NAME)-py3-supervisor
-	TITLE:=Next generation updater supervisor Python3 library
-	DEPENDS:=+updater-ng +python3-light python3-uci +userlists +l10n_supported
+	TITLE:=Next generation updater supervisor Python 3 library
+	DEPENDS:=+updater-ng +python3-light +python3-uci +userlists +l10n_supported
 	EXTRA_DEPENDS:=userlists (>=11)
 endef
 

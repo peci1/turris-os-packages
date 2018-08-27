@@ -8,7 +8,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=foris-schema
-PKG_VERSION:=0.5
+PKG_VERSION:=0.7.1
 PKG_RELEASE:=1
 PKG_SOURCE_SUBDIR:=$(PKG_NAME)
 PKG_SOURCE_PROTO:=git
@@ -18,17 +18,25 @@ PKG_SOURCE:=$(PKG_NAME)-$(PKG_SOURCE_VERSION).tar.gz
 PKG_BUILD_DIR:=$(BUILD_DIR)/$(PKG_NAME)
 PKG_LICENSE:=GPL-3.0
 
-PKG_BUILD_DEPENDS:=python-jsonschema/host
-
 include $(INCLUDE_DIR)/package.mk
 $(call include_mk, python-package.mk)
+$(call include_mk, python3-package.mk)
 
+define Package/Common
+	MAINTAINER:=CZ.NIC <packaging@turris.cz>
+	URL:=https://gitlab.labs.nic.cz/turris/foris-schema
+endef
 
 define Package/foris-schema
+	$(call Package/Common)
 	TITLE:=foris-schema
-	URL:=https://gitlab.labs.nic.cz/turris/foris-schema
 	DEPENDS:=+python-jsonschema
-	MAINTAINER:=CZ.NIC <packaging@turris.cz>
+endef
+
+define Package/foris-schema-python3
+	$(call Package/Common)
+	TITLE:=foris-schema-python3
+	DEPENDS:=+python3-jsonschema
 endef
 
 define Package/foris-schema/description
@@ -37,18 +45,24 @@ define Package/foris-schema/description
 endef
 
 define Build/Compile
-	$(call Build/Compile/PyMod,,install --prefix=/usr --root=$(PKG_INSTALL_DIR))
+	$(call Build/Compile/PyMod,., \
+		install --prefix="/usr" --root="$(PKG_INSTALL_DIR)/py2" \
+	)
+	$(call Build/Compile/Py3Mod,., \
+		install --prefix="/usr" --root="$(PKG_INSTALL_DIR)/py3" \
+	)
 endef
 
 define Package/foris-schema/conffiles
 endef
 
-define Package/foris-schema/install
-	$(INSTALL_DIR) $(1)$(PYTHON_PKG_DIR)/
-	$(CP) \
-		$(PKG_INSTALL_DIR)$(PYTHON_PKG_DIR)/* \
-		$(1)$(PYTHON_PKG_DIR)/
-endef
+PKG_INSTALL_DIR_ORIG:="$(PKG_INSTALL_DIR)"
+PKG_INSTALL_DIR:="$(PKG_INSTALL_DIR_ORIG)/py2"
+$(eval $(call PyPackage,foris-schema))
+PKG_INSTALL_DIR:="$(PKG_INSTALL_DIR_ORIG)/py3"
+$(eval $(call Py3Package,foris-schema-python3))
+PKG_INSTALL_DIR:="$(PKG_INSTALL_DIR_ORIG)"
 
 
 $(eval $(call BuildPackage,foris-schema))
+$(eval $(call BuildPackage,foris-schema-python3))

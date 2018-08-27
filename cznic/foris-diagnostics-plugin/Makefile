@@ -8,7 +8,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=foris-diagnostics-plugin
-PKG_VERSION:=8.5
+PKG_VERSION:=10
 PKG_RELEASE:=1
 PKG_SOURCE_SUBDIR:=$(PKG_NAME)
 PKG_SOURCE_PROTO:=git
@@ -20,11 +20,13 @@ PKG_BUILD_DIR:=$(BUILD_DIR)/$(PKG_NAME)
 PKG_LICENSE:=GPL-3.0
 PKG_LICENSE_FILE:=LICENSE
 
-PKG_BUILD_DEPENDS:=foris/host
+PKG_BUILD_DEPENDS:=python3/host python3-libsass/host python3-setuptools/host foris-plugins-distutils/host
 
 include $(INCLUDE_DIR)/package.mk
 include ../foris/files/foris-translations.mk
 include ../foris/files/foris-plugin.mk
+
+$(call include_mk, python3-package.mk)
 
 define Package/$(PKG_NAME)
 	TITLE:=$(PKG_NAME)
@@ -35,26 +37,6 @@ endef
 
 define Package/$(PKG_NAME)/description
  Foris plugin for generating diagnostics
-endef
-
-define Build/Compile
-	$(call Build/Compile/ForisPlugin)
-endef
-
-define Package/$(PKG_NAME)/postinst
-#!/bin/sh
-set -x
-[ -n "$$IPKG_INSTROOT" ] || {
-/etc/init.d/lighttpd restart
-}
-endef
-
-define Package/$(PKG_NAME)/postrm
-#!/bin/sh
-set -x
-[ -n "$$IPKG_INSTROOT" ] || {
-/etc/init.d/lighttpd restart
-}
 endef
 
 # Package install definition
