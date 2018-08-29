@@ -16,6 +16,7 @@ include $(INCLUDE_DIR)/package.mk
 
 define Package/$(PKG_NAME)
 	TITLE:=$(PKG_NAME)
+	DEPENDS:=+lighttpd-mod-openssl
 endef
 
 define Build/Compile
@@ -25,7 +26,6 @@ endef
 define Package/$(PKG_NAME)/install
 	$(INSTALL_DIR) $(1)/etc/lighttpd/conf.d/
 	$(INSTALL_CONF) ./files/ssl-enable.conf $(1)/etc/lighttpd/conf.d/ssl-enable.conf
-	$(INSTALL_CONF) ./files/30-openssl.conf $(1)/etc/lighttpd/conf.d/30-openssl.conf
 endef
 
 define Package/$(PKG_NAME)/postinst

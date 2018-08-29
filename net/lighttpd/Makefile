@@ -8,31 +8,18 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=lighttpd
-<<<<<<< HEAD
-PKG_VERSION:=1.4.49
-PKG_RELEASE:=1
-
-PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.xz
-PKG_SOURCE_URL:=https://download.lighttpd.net/lighttpd/releases-1.4.x
-PKG_MD5SUM:=aaf8165379351c3766e5ad1e5c9dbe8b
-=======
 PKG_VERSION:=1.4.50
 PKG_RELEASE:=2
 
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.xz
 PKG_SOURCE_URL:=https://download.lighttpd.net/lighttpd/releases-1.4.x
 PKG_MD5SUM:=29378312d8887cbc14ffe8a7fadef2d5a08c7e7e1be942795142346ad95629eb
->>>>>>> test
 
 PKG_LICENSE:=BSD-3c
 PKG_LICENSE_FILES:=COPYING
 
 PKG_FIXUP:=autoreconf
 PKG_INSTALL:=1
-
-REBUILD_MODULES=authn_gssapi authn_ldap authn_mysql cml magnet mysql_vhost trigger_b4_dl webdav
-
-PKG_CONFIG_DEPENDS:=CONFIG_LIGHTTPD_SSL $(patsubst %,CONFIG_PACKAGE_lighttpd-mod-%,$(REBUILD_MODULES))
 
 include $(INCLUDE_DIR)/package.mk
 
@@ -51,6 +38,18 @@ define Package/lighttpd
   TITLE:=A flexible and lightweight web server
 endef
 
+define Package/lighttpd/postinst
+#!/bin/sh
+[ -n "$$IPKG_INSTROOT" ] || {
+if [ -e /etc/rc.d/S86lighttpd ] ; then
+	/etc/init.d/lighttpd disable
+	/etc/init.d/lighttpd enable
+fi
+# During initial installation, there are still some modules missing. It'll be started by something else later.
+/etc/init.d/lighttpd restart || ( sleep 5 ; /etc/init.d/lighttpd restart ) || true
+}
+endef
+
 define Package/lighttpd/config
 config LIGHTTPD_SSL
 	bool "SSL support"
@@ -62,9 +61,7 @@ config LIGHTTPD_SSL
 	  lighttpd confguration file.
 endef
 
-TARGET_CFLAGS += -std=c99
-
-BASE_MODULES:=dirlisting indexfile staticfile
+TARGET_CFLAGS += --std=c99
 
 BASE_MODULES:=dirlisting indexfile staticfile
 
@@ -77,6 +74,9 @@ CONFIGURE_ARGS+= \
 	--without-attr \
 	--without-bzip2 \
 	--without-fam \
+	--without-ldap \
+	--with-lua \
+	--without-memcache \
 	--with-pcre \
 	--without-valgrind \
 	 $(call autoconf_bool,CONFIG_IPV6,ipv6)
@@ -87,58 +87,22 @@ CONFIGURE_VARS+= \
 ifneq ($(strip $(CONFIG_LIGHTTPD_SSL)),)
   CONFIGURE_ARGS+= \
 	--with-openssl="$(STAGING_DIR)/usr"
-  BASE_MODULES+= openssl
 else
   CONFIGURE_ARGS+= \
 	--without-openssl
 endif
 
-ifneq ($(SDK)$(CONFIG_PACKAGE_lighttpd-mod-authn_gssapi),)
-  CONFIGURE_ARGS+= --with-krb5
+ifneq ($(SDK)$(CONFIG_PACKAGE_lighttpd-mod-mysql-vhost),)
+  CONFIGURE_ARGS+= \
+	--with-mysql
 else
-  CONFIGURE_ARGS+= --without-krb5
+  CONFIGURE_ARGS+= \
+	--without-mysql
 endif
-
-ifneq ($(SDK)$(CONFIG_PACKAGE_lighttpd-mod-authn_ldap),)
-  CONFIGURE_ARGS+= --with-ldap
-else
-  CONFIGURE_ARGS+= --without-ldap
-endif
-
-ifneq ($(SDK)$(CONFIG_PACKAGE_lighttpd-mod-authn_mysql),)
-  CONFIGURE_ARGS+= --with-mysql
-else
-  CONFIGURE_ARGS+= --without-mysql
-endif
-
-#ifneq ($(SDK)$(CONFIG_PACKAGE_lighttpd-mod-geoip),)
-#  CONFIGURE_ARGS+= --with-geoip
-#else
-#  CONFIGURE_ARGS+= --without-geoip
-#endif
-
-ifneq ($(SDK)$(CONFIG_PACKAGE_lighttpd-mod-cml)$(CONFIG_PACKAGE_lighttpd-mod-magnet),)
-  CONFIGURE_ARGS+= --with-lua
-else
-  CONFIGURE_ARGS+= --without-lua
-endif
-
-ifneq ($(SDK)$(CONFIG_PACKAGE_lighttpd-mod-mysql_vhost),)
-  CONFIGURE_ARGS+= --with-mysql
-else
-  CONFIGURE_ARGS+= --without-mysql
-endif
-
-#ifneq ($(SDK)$(CONFIG_PACKAGE_lighttpd-mod-cml)$(CONFIG_PACKAGE_lighttpd-mod-trigger_b4_dl),)
-#  CONFIGURE_ARGS+= --with-memcached
-#else
-#  CONFIGURE_ARGS+= --without-memcached
-#endif
 
 ifneq ($(SDK)$(CONFIG_PACKAGE_lighttpd-mod-trigger_b4_dl),)
-  CONFIGURE_ARGS+= --with-gdbm
-else
-  CONFIGURE_ARGS+= --without-gdbm
+  CONFIGURE_ARGS+= \
+	--with-gdbm=yes
 endif
 
 ifneq ($(SDK)$(CONFIG_PACKAGE_lighttpd-mod-webdav),)
@@ -169,6 +133,7 @@ define Package/lighttpd/install
 	$(INSTALL_DIR) $(1)/etc/lighttpd
 	$(INSTALL_DATA) ./files/lighttpd.conf $(1)/etc/lighttpd/
 	$(INSTALL_DATA) $(PKG_BUILD_DIR)/doc/config/conf.d/mime.conf $(1)/etc/lighttpd/
+	$(INSTALL_DIR) $(1)/etc/lighttpd/modules.d
 	$(INSTALL_DIR) $(1)/etc/lighttpd/conf.d
 	$(INSTALL_DIR) $(1)/etc/init.d
 	$(INSTALL_BIN) ./files/lighttpd.init $(1)/etc/init.d/lighttpd
@@ -190,17 +155,6 @@ define BuildPlugin
     TITLE:=$(2) module
   endef
 
-<<<<<<< HEAD
- ifneq ($(SDK)$(CONFIG_PACKAGE_lighttpd-mod-$(1)),)
-  define Package/lighttpd-mod-$(1)/install
-	$(INSTALL_DIR) $$(1)/usr/lib/lighttpd
-	$(CP) $(PKG_INSTALL_DIR)/usr/lib/lighttpd/mod_$(1).so $$(1)/usr/lib/lighttpd
-	$(INSTALL_DIR) $$(1)/etc/lighttpd/conf.d
-	if [ -f $(PKG_BUILD_DIR)/doc/config/conf.d/$(1).conf ]; then \
-		$(CP) $(PKG_BUILD_DIR)/doc/config/conf.d/$(1).conf $$(1)/etc/lighttpd/conf.d/$(4)-$(1).conf ; \
-	else \
-		echo 'server.modules += ( "mod_$(1)" )' > $$(1)/etc/lighttpd/conf.d/$(4)-$(1).conf ; \
-=======
   define Package/lighttpd-mod-$(1)/postinst
 #!/bin/sh
 [ -n "$$IPKG_INSTROOT" ] || /etc/init.d/lighttpd restart
@@ -214,10 +168,8 @@ define BuildPlugin
 		$(CP) $(PKG_BUILD_DIR)/doc/config/conf.d/$(1).conf $$(1)/etc/lighttpd/modules.d/$(4)-$(1).load ; \
 	else \
 		echo 'server.modules += ( "mod_$(1)" )' > $$(1)/etc/lighttpd/modules.d/$(4)-$(1).load ; \
->>>>>>> test
 	fi
   endef
- endif
 
   $$(eval $$(call BuildPackage,lighttpd-mod-$(1)))
 endef
@@ -230,36 +182,23 @@ $(eval $(call BuildPlugin,redirect,URL redirection,+PACKAGE_lighttpd-mod-redirec
 # Next, permit authentication.
 $(eval $(call BuildPlugin,auth,Authentication,,20))
 $(eval $(call BuildPlugin,authn_file,File-based authentication,,20))
-$(eval $(call BuildPlugin,authn_gssapi,Kerberos-based authentication,+PACKAGE_lighttpd-mod-authn_gssapi:krb5-libs,20))
-$(eval $(call BuildPlugin,authn_ldap,LDAP-based authentication,+PACKAGE_lighttpd-mod-authn_ldap:libopenldap,20))
-$(eval $(call BuildPlugin,authn_mysql,Mysql-based authentication,+PACKAGE_lighttpd-mod-authn_mysql:libmysqlclient,20))
 
 # Finally, everything else.
 $(eval $(call BuildPlugin,access,Access restrictions,,30))
 $(eval $(call BuildPlugin,accesslog,Access logging,,30))
 $(eval $(call BuildPlugin,alias,Directory alias,,30))
 $(eval $(call BuildPlugin,cgi,CGI,,30))
-<<<<<<< HEAD
-#$(eval $(call BuildPlugin,cml,Cache Meta Language,+PACKAGE_lighttpd-mod-cml:liblua +PACKAGE_lighttpd-mod-cml:libmemcached,30))
-=======
->>>>>>> test
 $(eval $(call BuildPlugin,cml,Cache Meta Language,+PACKAGE_lighttpd-mod-cml:liblua,30))
 $(eval $(call BuildPlugin,compress,Compress output,+PACKAGE_lighttpd-mod-compress:zlib,30))
-$(eval $(call BuildPlugin,deflate,Compress dynamic output,+PACKAGE_lighttpd-mod-deflate:zlib,30))
 $(eval $(call BuildPlugin,evasive,Evasive,,30))
 $(eval $(call BuildPlugin,evhost,Enhanced Virtual-Hosting,,30))
 $(eval $(call BuildPlugin,expire,Expire,,30))
+$(eval $(call BuildPlugin,openssl,Openssl,,30))
 $(eval $(call BuildPlugin,extforward,Extract client,,30))
 $(eval $(call BuildPlugin,fastcgi,FastCGI,,30))
 $(eval $(call BuildPlugin,flv_streaming,FLV streaming,,30))
-<<<<<<< HEAD
-#$(eval $(call BuildPlugin,geoip,Geolocation,+PACKAGE_lighttpd-mod-geoip:libgeoip,30))
-$(eval $(call BuildPlugin,magnet,Magnet,+PACKAGE_lighttpd-mod-magnet:liblua,30))
-$(eval $(call BuildPlugin,mysql_vhost,Mysql virtual hosting,+PACKAGE_lighttpd-mod-mysql_vhost:libmysqlclient,30))
-=======
 $(eval $(call BuildPlugin,magnet,Magnet,+PACKAGE_lighttpd-mod-magnet:liblua,30))
 # $(eval $(call BuildPlugin,mysql_vhost,Mysql virtual hosting,+PACKAGE_lighttpd-mod-mysql_vhost:libmysqlclient,30))
->>>>>>> test
 $(eval $(call BuildPlugin,proxy,Proxy,,30))
 $(eval $(call BuildPlugin,rewrite,URL rewriting,+PACKAGE_lighttpd-mod-rewrite:libpcre,30))
 $(eval $(call BuildPlugin,rrdtool,RRDtool,,30))
@@ -269,7 +208,6 @@ $(eval $(call BuildPlugin,setenv,Environment variable setting,,30))
 $(eval $(call BuildPlugin,simple_vhost,Simple virtual hosting,,30))
 $(eval $(call BuildPlugin,ssi,SSI,+PACKAGE_lighttpd-mod-ssi:libpcre,30))
 $(eval $(call BuildPlugin,status,Server status display,,30))
-#$(eval $(call BuildPlugin,trigger_b4_dl,Trigger before download,+PACKAGE_lighttpd-mod-trigger_b4_dl:libpcre +PACKAGE_lighttpd-mod-trigger_b4_dl:libgdbm +PACKAGE_lighttpd-mod-trigger_b4_dl:libmemcached,30))
 $(eval $(call BuildPlugin,trigger_b4_dl,Trigger before download,+PACKAGE_lighttpd-mod-trigger_b4_dl:libpcre +PACKAGE_lighttpd-mod-trigger_b4_dl:libgdbm,30))
 $(eval $(call BuildPlugin,userdir,User directory,,30))
 $(eval $(call BuildPlugin,usertrack,User tracking,,30))
