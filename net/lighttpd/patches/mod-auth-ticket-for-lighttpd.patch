@@ -324,8 +324,8 @@ Index: lighttpd-1.4.50/src/mod_auth_ticket.c
 +static int
 +hex_encode(buffer *b, const uint8_t *s, int len) {
 +    force_assert(len * 2 > len);
-+    buffer_string_set_length(b, 2 * in_len);
-+    return li_tohex(b->ptr, buffer_string_length(b)+1, in, in_len);
++    buffer_string_set_length(b, 2 * len);
++    return li_tohex(b->ptr, buffer_string_length(b)+1, s, len);
 +}
 +
 +// decode hexstring into bytes
